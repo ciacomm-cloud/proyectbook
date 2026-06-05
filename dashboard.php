@@ -10,6 +10,164 @@ error_reporting(E_ALL);
 
 
 
+// --- MAILER ---
+
+require 'phpmailer/vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+
+use PHPMailer\PHPMailer\Exception;
+
+
+
+function enviar_correo(array $destinatarios, string $asunto, string $cuerpo_html): bool {
+
+    $mail = new PHPMailer(true);
+
+    try {
+
+        $mail->isSMTP();
+
+        $mail->Host       = 'mail.ciacomm.com';
+
+        $mail->SMTPAuth   = true;
+
+        $mail->Username   = 'aviso@proyectbook.com';
+
+        $mail->Password   = '43,sToRhY,}';
+
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+
+        $mail->Port       = 587;
+
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->setFrom('aviso@proyectbook.com', 'Sistema ODT Proyectbook');
+
+        foreach ($destinatarios as $d) {
+
+            $mail->addAddress($d['email'], $d['nombre']);
+
+        }
+
+        $mail->isHTML(true);
+
+        $mail->Subject = $asunto;
+
+        $mail->Body    = $cuerpo_html;
+
+        $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $cuerpo_html));
+
+        $mail->send();
+
+        return true;
+
+    } catch (Exception $e) {
+
+        error_log("Mailer Error: " . $mail->ErrorInfo);
+
+        return false;
+
+    }
+
+}
+
+
+
+function html_nueva_odt(string $creador, string $tema, string $descripcion, string $prioridad, string $fecha_vence, int $odt_id): string {
+
+    $url = "https://master.proyectbook.com/dashboard.php?view_odt={$odt_id}";
+
+    $color_prio = match(strtolower($prioridad)) {
+
+        'urgente' => '#dc3545', 'alta' => '#fd7e14', 'media' => '#0d6efd', default => '#6c757d',
+
+    };
+
+    return "
+    <div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>
+        <div style='background:#111;padding:20px 24px;border-radius:8px 8px 0 0;'>
+            <h2 style='color:#fff;margin:0;font-size:18px;'>Nueva Orden de Trabajo asignada</h2>
+        </div>
+        <div style='background:#fff;padding:24px;border:1px solid #e0e0e0;border-top:none;'>
+            <p style='margin:0 0 16px;color:#333;'>Fuiste asignado como participante en una nueva ODT:</p>
+            <table style='width:100%;border-collapse:collapse;margin-bottom:20px;'>
+                <tr><td style='padding:8px 12px;background:#f8f9fa;color:#555;font-size:13px;width:130px;'>ODT #</td><td style='padding:8px 12px;font-weight:bold;'>{$odt_id}</td></tr>
+                <tr><td style='padding:8px 12px;background:#f8f9fa;color:#555;font-size:13px;'>Tema</td><td style='padding:8px 12px;font-weight:bold;'>" . htmlspecialchars($tema) . "</td></tr>
+                <tr><td style='padding:8px 12px;background:#f8f9fa;color:#555;font-size:13px;'>Creada por</td><td style='padding:8px 12px;'>" . htmlspecialchars($creador) . "</td></tr>
+                <tr><td style='padding:8px 12px;background:#f8f9fa;color:#555;font-size:13px;'>Prioridad</td><td style='padding:8px 12px;'><span style='background:{$color_prio};color:#fff;padding:3px 10px;border-radius:12px;font-size:13px;'>{$prioridad}</span></td></tr>
+                <tr><td style='padding:8px 12px;background:#f8f9fa;color:#555;font-size:13px;'>Vencimiento</td><td style='padding:8px 12px;'>" . date('d/m/Y', strtotime($fecha_vence)) . "</td></tr>
+            </table>
+            <div style='background:#f8f9fa;border-left:4px solid #111;padding:12px 16px;margin-bottom:24px;border-radius:0 6px 6px 0;'>
+                <p style='margin:0;color:#333;font-size:14px;white-space:pre-wrap;'>" . htmlspecialchars($descripcion) . "</p>
+            </div>
+            <a href='{$url}' style='display:inline-block;background:#111;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;'>Ver ODT en el sistema</a>
+        </div>
+        <div style='padding:12px 24px;background:#f0f0f0;border-radius:0 0 8px 8px;'>
+            <p style='margin:0;font-size:11px;color:#888;'>Este es un mensaje automático del Sistema ODT Proyectbook.</p>
+        </div>
+    </div>";
+
+}
+
+
+
+function html_nuevo_comentario(string $autor, string $tema, string $comentario, int $odt_id): string {
+
+    $url = "https://master.proyectbook.com/dashboard.php?view_odt={$odt_id}";
+
+    return "
+    <div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>
+        <div style='background:#111;padding:20px 24px;border-radius:8px 8px 0 0;'>
+            <h2 style='color:#fff;margin:0;font-size:18px;'>Nuevo avance en ODT #{$odt_id}</h2>
+        </div>
+        <div style='background:#fff;padding:24px;border:1px solid #e0e0e0;border-top:none;'>
+            <p style='margin:0 0 4px;color:#555;font-size:13px;'>ODT: <strong>" . htmlspecialchars($tema) . "</strong></p>
+            <p style='margin:0 0 20px;color:#555;font-size:13px;'><strong>" . htmlspecialchars($autor) . "</strong> registró un nuevo avance:</p>
+            <div style='background:#f8f9fa;border-left:4px solid #0d6efd;padding:12px 16px;margin-bottom:24px;border-radius:0 6px 6px 0;'>
+                <p style='margin:0;color:#333;font-size:14px;white-space:pre-wrap;'>" . htmlspecialchars($comentario) . "</p>
+            </div>
+            <a href='{$url}' style='display:inline-block;background:#111;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;'>Ver ODT en el sistema</a>
+        </div>
+        <div style='padding:12px 24px;background:#f0f0f0;border-radius:0 0 8px 8px;'>
+            <p style='margin:0;font-size:11px;color:#888;'>Este es un mensaje automático del Sistema ODT Proyectbook.</p>
+        </div>
+    </div>";
+
+}
+
+
+
+// --- WHATSAPP (CallMeBot) ---
+
+function enviar_whatsapp(string $celular, string $apikey, string $mensaje): void {
+
+    $url = "https://api.callmebot.com/whatsapp.php?phone=" . urlencode($celular)
+         . "&apikey=" . urlencode($apikey)
+         . "&text=" . urlencode($mensaje);
+
+    $ctx = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
+
+    @file_get_contents($url, false, $ctx);
+
+}
+
+function notificar_whatsapp(array $usuarios, string $mensaje): void {
+
+    foreach ($usuarios as $u) {
+
+        if (!empty($u['celular']) && !empty($u['whatsapp_apikey'])) {
+
+            enviar_whatsapp($u['celular'], $u['whatsapp_apikey'], $mensaje);
+
+        }
+
+    }
+
+}
+
+
+
 session_start();
 
 require 'conexion.php';
@@ -40,6 +198,8 @@ $mi_nombre = $_SESSION['nombre'];
 
 if (isset($_POST['update_avatar'])) {
 
+    $updates = [];
+
     if (isset($_FILES['avatar_file']) && $_FILES['avatar_file']['error'] == 0) {
 
         $ext = pathinfo($_FILES['avatar_file']['name'], PATHINFO_EXTENSION);
@@ -48,15 +208,29 @@ if (isset($_POST['update_avatar'])) {
 
         if (move_uploaded_file($_FILES['avatar_file']['tmp_name'], "uploads/" . $nombre_archivo)) {
 
-            $conexion->query("UPDATE usuarios SET avatar = '$nombre_archivo' WHERE id = $mi_id");
-
-            header("Location: dashboard.php"); 
-
-            exit;
+            $updates[] = "avatar = '$nombre_archivo'";
 
         }
 
     }
+
+    if (isset($_POST['wa_apikey'])) {
+
+        $wa_key = $conexion->real_escape_string(trim($_POST['wa_apikey']));
+
+        $updates[] = "whatsapp_apikey = " . ($wa_key !== '' ? "'$wa_key'" : "NULL");
+
+    }
+
+    if (!empty($updates)) {
+
+        $conexion->query("UPDATE usuarios SET " . implode(', ', $updates) . " WHERE id = $mi_id");
+
+    }
+
+    header("Location: dashboard.php");
+
+    exit;
 
 }
 
@@ -64,7 +238,7 @@ if (isset($_POST['update_avatar'])) {
 
 // --- ACCIÓN: CREAR NUEVA ODT ---
 
-if (isset($_POST['crear_odt'])) {
+if (isset($_POST['crear_odt']) && $mi_rol != 'admin') {
 
     $tema = $conexion->real_escape_string($_POST['tema']);
 
@@ -100,17 +274,67 @@ if (isset($_POST['crear_odt'])) {
 
         $odt_id = $conexion->insert_id;
 
+        $ids_participantes = [];
+
         if (isset($_POST['participantes']) && is_array($_POST['participantes'])) {
 
             foreach ($_POST['participantes'] as $p_id) {
 
-                $conexion->query("INSERT INTO participantes (odt_id, usuario_id) VALUES ($odt_id, " . intval($p_id) . ")");
+                $p_id = intval($p_id);
+
+                $conexion->query("INSERT INTO participantes (odt_id, usuario_id) VALUES ($odt_id, $p_id)");
+
+                $ids_participantes[] = $p_id;
 
             }
 
         }
 
-        header("Location: dashboard.php?msg=odt_creada"); 
+        // --- Notificar a participantes por email ---
+
+        if (!empty($ids_participantes)) {
+
+            $ids_str = implode(',', $ids_participantes);
+
+            $res_part = $conexion->query("SELECT nombre, email, celular, whatsapp_apikey FROM usuarios WHERE id IN ($ids_str)");
+
+            $destinatarios = [];
+
+            $dest_wa = [];
+
+            while ($rp = $res_part->fetch_assoc()) {
+
+                if (!empty($rp['email']))          $destinatarios[] = ['email' => $rp['email'], 'nombre' => $rp['nombre']];
+
+                if (!empty($rp['whatsapp_apikey'])) $dest_wa[]      = $rp;
+
+            }
+
+            if (!empty($destinatarios)) {
+
+                $asunto = "Nueva ODT asignada: " . $tema;
+
+                $cuerpo = html_nueva_odt($mi_nombre, $tema, $descripcion, $prioridad, $fecha_terminacion, $odt_id);
+
+                enviar_correo($destinatarios, $asunto, $cuerpo);
+
+            }
+
+            if (!empty($dest_wa)) {
+
+                $msg_wa = "📋 *Nueva ODT #{$odt_id} asignada*\n"
+                        . "*{$tema}*\n"
+                        . "Prioridad: {$prioridad} | Vence: " . date('d/m/Y', strtotime($fecha_terminacion)) . "\n"
+                        . "Creada por: {$mi_nombre}\n"
+                        . "👉 https://master.proyectbook.com/dashboard.php?view_odt={$odt_id}";
+
+                notificar_whatsapp($dest_wa, $msg_wa);
+
+            }
+
+        }
+
+        header("Location: dashboard.php?msg=odt_creada");
 
         exit;
 
@@ -138,7 +362,7 @@ if (isset($_POST['enviar_respuesta'])) {
 
     
 
-    if ($odt_info['estatus'] == 'abierta' && ($soy_creador || $soy_partic || $mi_rol == 'admin')) {
+    if ($odt_info['estatus'] == 'abierta' && ($soy_creador || $soy_partic) && $mi_rol != 'admin') {
 
         $archivo_db = "";
 
@@ -152,9 +376,139 @@ if (isset($_POST['enviar_respuesta'])) {
 
         $conexion->query("INSERT INTO evidencias (odt_id, usuario_id, comentario, archivo) VALUES ($odt_id, $mi_id, '$comentario', '$archivo_db')");
 
+        $tema_odt = $conexion->query("SELECT tema FROM odts WHERE id = $odt_id")->fetch_assoc()['tema'];
+
+        // --- Agregar nuevos participantes si se seleccionaron ---
+
+        $ids_nuevos = [];
+
+        if (isset($_POST['nuevos_participantes']) && is_array($_POST['nuevos_participantes'])) {
+
+            foreach ($_POST['nuevos_participantes'] as $np_id) {
+
+                $np_id = intval($np_id);
+
+                $conexion->query("INSERT IGNORE INTO participantes (odt_id, usuario_id) VALUES ($odt_id, $np_id)");
+
+                $ids_nuevos[] = $np_id;
+
+            }
+
+        }
+
+        // --- Notificar nuevos participantes con email de bienvenida a la ODT ---
+
+        if (!empty($ids_nuevos)) {
+
+            $ids_str = implode(',', $ids_nuevos);
+
+            $res_np = $conexion->query("SELECT nombre, email FROM usuarios WHERE id IN ($ids_str) AND email != ''");
+
+            $dest_nuevos = [];
+
+            while ($rnp = $res_np->fetch_assoc()) {
+
+                $dest_nuevos[] = ['email' => $rnp['email'], 'nombre' => $rnp['nombre']];
+
+            }
+
+            if (!empty($dest_nuevos) || !empty($ids_nuevos)) {
+
+                $odt_full = $conexion->query("SELECT descripcion, prioridad, fecha_terminacion FROM odts WHERE id = $odt_id")->fetch_assoc();
+
+                if (!empty($dest_nuevos)) {
+
+                    $asunto_np = "Fuiste agregado a una ODT: " . $tema_odt;
+
+                    $cuerpo_np = html_nueva_odt($mi_nombre, $tema_odt, $odt_full['descripcion'], $odt_full['prioridad'], $odt_full['fecha_terminacion'], $odt_id);
+
+                    enviar_correo($dest_nuevos, $asunto_np, $cuerpo_np);
+
+                }
+
+                // WhatsApp a nuevos participantes
+                if (!empty($ids_nuevos)) {
+
+                    $ids_str_np = implode(',', $ids_nuevos);
+
+                    $res_wa_np = $conexion->query("SELECT celular, whatsapp_apikey FROM usuarios WHERE id IN ($ids_str_np) AND whatsapp_apikey IS NOT NULL");
+
+                    $dest_wa_np = [];
+
+                    while ($rwnp = $res_wa_np->fetch_assoc()) $dest_wa_np[] = $rwnp;
+
+                    if (!empty($dest_wa_np)) {
+
+                        $msg_wa_np = "📋 *Te agregaron a una ODT #{$odt_id}*\n"
+                                   . "*{$tema_odt}*\n"
+                                   . "Prioridad: {$odt_full['prioridad']} | Vence: " . date('d/m/Y', strtotime($odt_full['fecha_terminacion'])) . "\n"
+                                   . "Por: {$mi_nombre}\n"
+                                   . "👉 https://master.proyectbook.com/dashboard.php?view_odt={$odt_id}";
+
+                        notificar_whatsapp($dest_wa_np, $msg_wa_np);
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        // --- Notificar al resto de involucrados (excepto quien comenta) sobre el nuevo avance ---
+
+        $res_inv = $conexion->query("
+
+            SELECT DISTINCT u.nombre, u.email, u.celular, u.whatsapp_apikey FROM usuarios u
+
+            WHERE u.id != $mi_id AND (
+
+                u.id = (SELECT creador_id FROM odts WHERE id = $odt_id)
+
+                OR u.id IN (SELECT usuario_id FROM participantes WHERE odt_id = $odt_id)
+
+            )
+
+        ");
+
+        $dest_comentario = [];
+
+        $dest_wa_com = [];
+
+        while ($ri = $res_inv->fetch_assoc()) {
+
+            if (!empty($ri['email']))           $dest_comentario[] = ['email' => $ri['email'], 'nombre' => $ri['nombre']];
+
+            if (!empty($ri['whatsapp_apikey'])) $dest_wa_com[]     = $ri;
+
+        }
+
+        if (!empty($dest_comentario)) {
+
+            $asunto_c = "Nuevo avance en ODT #{$odt_id}: " . $tema_odt;
+
+            $cuerpo_c = html_nuevo_comentario($mi_nombre, $tema_odt, $comentario, $odt_id);
+
+            enviar_correo($dest_comentario, $asunto_c, $cuerpo_c);
+
+        }
+
+        if (!empty($dest_wa_com)) {
+
+            $extracto = mb_strlen($comentario) > 100 ? mb_substr($comentario, 0, 100) . '...' : $comentario;
+
+            $msg_wa_c = "💬 *Nuevo avance en ODT #{$odt_id}*\n"
+                      . "*{$tema_odt}*\n"
+                      . "{$mi_nombre}: {$extracto}\n"
+                      . "👉 https://master.proyectbook.com/dashboard.php?view_odt={$odt_id}";
+
+            notificar_whatsapp($dest_wa_com, $msg_wa_c);
+
+        }
+
     }
 
-    header("Location: dashboard.php?view_odt=$odt_id"); 
+    header("Location: dashboard.php?view_odt=$odt_id");
 
     exit;
 
@@ -170,7 +524,7 @@ if (isset($_POST['cerrar_odt'])) {
 
     $odt_info = $conexion->query("SELECT creador_id FROM odts WHERE id = $odt_id")->fetch_assoc();
 
-    if ($odt_info['creador_id'] == $mi_id || $mi_rol == 'admin') { 
+    if ($odt_info['creador_id'] == $mi_id) {
 
         $conexion->query("UPDATE odts SET estatus = 'cerrada' WHERE id = $odt_id");
 
@@ -246,15 +600,35 @@ if ($mi_rol == 'admin') {
 
         $sql_upd = "UPDATE usuarios SET nombre='$e_n', email='$e_e', celular='$e_c', rol='$e_r'";
 
-        if (!empty($_POST['e_pass'])) { 
+        if (!empty($_POST['e_pass'])) {
 
-            $sql_upd .= ", password='" . password_hash($_POST['e_pass'], PASSWORD_DEFAULT) . "'"; 
+            $sql_upd .= ", password='" . password_hash($_POST['e_pass'], PASSWORD_DEFAULT) . "'";
+
+        }
+
+        if (isset($_FILES['e_avatar']) && $_FILES['e_avatar']['error'] == 0) {
+
+            $ext = pathinfo($_FILES['e_avatar']['name'], PATHINFO_EXTENSION);
+
+            $nombre_avatar = "avatar_" . $e_id . "_" . time() . "." . $ext;
+
+            move_uploaded_file($_FILES['e_avatar']['tmp_name'], "uploads/" . $nombre_avatar);
+
+            $sql_upd .= ", avatar='" . $conexion->real_escape_string($nombre_avatar) . "'";
+
+        }
+
+        if (isset($_POST['e_wa_apikey'])) {
+
+            $e_wa = $conexion->real_escape_string(trim($_POST['e_wa_apikey']));
+
+            $sql_upd .= ", whatsapp_apikey = " . ($e_wa !== '' ? "'$e_wa'" : "NULL");
 
         }
 
         $conexion->query($sql_upd . " WHERE id = $e_id");
 
-        header("Location: dashboard.php"); 
+        header("Location: dashboard.php");
 
         exit;
 
@@ -280,7 +654,9 @@ if ($mi_rol == 'admin') {
 
 $yo = $conexion->query("SELECT * FROM usuarios WHERE id = $mi_id")->fetch_assoc();
 
-$avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://via.placeholder.com/80";
+$tiene_avatar = !empty($yo['avatar']);
+
+$avatar_src = $tiene_avatar ? "uploads/" . $yo['avatar'] : "";
 
 ?>
 
@@ -295,6 +671,12 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Dashboard - ODT Proyectbook</title>
+
+    <?php if (isset($wa_es_qr) && $wa_es_qr && isset($_GET['tab']) && $_GET['tab'] === 'whatsapp'): ?>
+
+    <meta http-equiv="refresh" content="15;url=dashboard.php?tab=whatsapp">
+
+    <?php endif; ?>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -332,13 +714,25 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
             <div class="d-flex align-items-center">
 
-                <div class="position-relative me-3">
+                <div class="position-relative me-3" style="width:65px;height:65px;">
 
-                    <img src="<?php echo $avatar_src; ?>" class="rounded-circle border" style="width: 65px; height: 65px; object-fit: cover;">
+                    <?php if ($tiene_avatar): ?>
 
-                    <button class="btn btn-sm btn-dark position-absolute bottom-0 end-0 p-1 rounded-circle" data-bs-toggle="modal" data-bs-target="#modalAvatar">
+                        <img src="<?php echo $avatar_src; ?>" class="rounded-circle border" style="width:65px;height:65px;object-fit:cover;">
 
-                        <i class="bi bi-pencil-fill" style="font-size: 0.75rem;"></i>
+                    <?php else: ?>
+
+                        <div class="rounded-circle border bg-secondary d-flex align-items-center justify-content-center" style="width:65px;height:65px;">
+
+                            <i class="bi bi-person-fill text-white" style="font-size:1.8rem;"></i>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                    <button class="btn btn-sm btn-dark position-absolute bottom-0 end-0 p-1 rounded-circle" data-bs-toggle="modal" data-bs-target="#modalAvatar" style="width:22px;height:22px;line-height:1;">
+
+                        <i class="bi bi-pencil-fill" style="font-size:0.6rem;"></i>
 
                     </button>
 
@@ -430,7 +824,7 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                 <a href="dashboard.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
 
-                <?php if ($odt['estatus'] == 'abierta' && $es_creador): ?>
+                <?php if ($odt['estatus'] == 'abierta' && $es_creador && $mi_rol != 'admin'): ?>
 
                     <form method="POST" onsubmit="return confirm('¿Cerrar definitivamente esta ODT?');">
 
@@ -462,9 +856,55 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                     </div>
 
-                    <h4 class="mt-2 mb-0 fw-bold"><?php echo htmlspecialchars($odt['tema']); ?></h4>
+                    <h4 class="mt-2 mb-1 fw-bold"><?php echo htmlspecialchars($odt['tema']); ?></h4>
 
-                    <p class="mb-0 small text-light-50">Área: <?php echo htmlspecialchars($odt['dept_nom']); ?> | Límite: <?php echo $odt['fecha_terminacion']; ?></p>
+                    <p class="mb-3 small text-light-50">Área: <?php echo htmlspecialchars($odt['dept_nom']); ?> | Límite: <?php echo date('d/m/Y', strtotime($odt['fecha_terminacion'])); ?></p>
+
+                    <div class="d-flex flex-wrap gap-2">
+
+                        <?php
+                        $dots = ['#60a5fa','#34d399','#f472b6','#fb923c','#a78bfa','#38bdf8','#facc15'];
+                        $res_partics = $conexion->query("
+                            SELECT u.id, u.nombre, u.avatar,
+                                   IF(u.id = {$odt['creador_id']}, 1, 0) AS es_creador
+                            FROM usuarios u
+                            WHERE u.rol = 'regular'
+                            AND (u.id = {$odt['creador_id']}
+                               OR u.id IN (SELECT usuario_id FROM participantes WHERE odt_id = $odt_id))
+                            ORDER BY es_creador DESC, u.nombre ASC
+                        ");
+                        $ci = 0;
+                        while ($rp = $res_partics->fetch_assoc()):
+                            $rp_avatar = !empty($rp['avatar']) ? "uploads/" . $rp['avatar'] : "";
+                            $dot = $dots[$ci % count($dots)];
+                            $ci++;
+                        ?>
+
+                            <div class="d-flex align-items-center rounded-pill px-2 py-1" style="background:rgba(255,255,255,0.1);font-size:0.78rem;">
+
+                                <?php if ($rp_avatar): ?>
+
+                                    <img src="<?php echo $rp_avatar; ?>" class="rounded-circle me-2" style="width:20px;height:20px;object-fit:cover;outline:2px solid <?php echo $dot; ?>;">
+
+                                <?php else: ?>
+
+                                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width:20px;height:20px;background:<?php echo $dot; ?>20;outline:2px solid <?php echo $dot; ?>;"><i class="bi bi-person-fill" style="font-size:0.65rem;color:<?php echo $dot; ?>;"></i></span>
+
+                                <?php endif; ?>
+
+                                <span class="text-white fw-semibold"><?php echo htmlspecialchars($rp['nombre']); ?></span>
+
+                                <?php if ($rp['es_creador']): ?>
+
+                                    <span class="ms-1" style="opacity:0.5;font-size:0.68rem;color:#fff;">creador</span>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                        <?php endwhile; ?>
+
+                    </div>
 
                 </div>
 
@@ -540,7 +980,7 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                     <?php if ($odt['estatus'] == 'abierta'): ?>
 
-                        <?php if ($es_involucrado || $mi_rol == 'admin'): ?>
+                        <?php if ($es_involucrado && $mi_rol != 'admin'): ?>
 
                             <div class="mt-4 pt-3 border-top">
 
@@ -554,13 +994,68 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                     </div>
 
-                                    <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
 
                                         <input type="file" name="resp_archivo" class="form-control form-control-sm w-50">
 
                                         <button type="submit" name="enviar_respuesta" class="btn btn-dark px-4">ENVIAR</button>
 
                                     </div>
+
+                                    <?php
+                                    $nuevos = $conexion->query("
+                                        SELECT * FROM usuarios
+                                        WHERE rol = 'regular'
+                                        AND id != $mi_id
+                                        AND id NOT IN (SELECT usuario_id FROM participantes WHERE odt_id = $odt_id)
+                                        AND id != (SELECT creador_id FROM odts WHERE id = $odt_id)
+                                        ORDER BY nombre ASC
+                                    ");
+                                    if ($nuevos->num_rows > 0):
+                                    ?>
+
+                                    <div class="border-top pt-3">
+
+                                        <p class="fw-semibold small text-muted mb-2"><i class="bi bi-person-plus-fill"></i> Agregar usuarios a esta ODT</p>
+
+                                        <div class="row">
+
+                                        <?php while ($nu = $nuevos->fetch_assoc()):
+                                            $nu_avatar_src = !empty($nu['avatar']) ? "uploads/" . $nu['avatar'] : ""; ?>
+
+                                            <div class="col-md-4 col-sm-6 mb-2">
+
+                                                <div class="p-2 border rounded d-flex align-items-center bg-white">
+
+                                                    <input type="checkbox" name="nuevos_participantes[]" value="<?php echo $nu['id']; ?>" class="form-check-input me-3 ms-1">
+
+                                                    <?php if ($nu_avatar_src): ?>
+
+                                                        <img src="<?php echo $nu_avatar_src; ?>" class="rounded-circle border me-2 flex-shrink-0" style="width:32px;height:32px;object-fit:cover;">
+
+                                                    <?php else: ?>
+
+                                                        <div class="rounded-circle border bg-secondary d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width:32px;height:32px;">
+
+                                                            <i class="bi bi-person-fill text-white" style="font-size:0.85rem;"></i>
+
+                                                        </div>
+
+                                                    <?php endif; ?>
+
+                                                    <span class="small fw-semibold text-truncate"><?php echo htmlspecialchars($nu['nombre']); ?></span>
+
+                                                </div>
+
+                                            </div>
+
+                                        <?php endwhile; ?>
+
+                                        </div>
+
+                                    </div>
+
+                                    <?php endif; ?>
 
                                 </form>
 
@@ -600,9 +1095,11 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
             <div class="nav nav-pills" id="nav-tab" role="tablist">
 
-                <button class="nav-link active fw-bold text-dark me-2" data-bs-toggle="tab" data-bs-target="#tab-abiertas" type="button">ODTs ABIERTAS</button>
+                <button class="nav-link active fw-bold text-dark me-2" data-bs-toggle="tab" data-bs-target="#tab-abiertas" type="button"><i class="bi bi-clipboard2-pulse-fill me-1"></i> ODTs ABIERTAS</button>
 
-                <button class="nav-link fw-bold text-dark me-2" data-bs-toggle="tab" data-bs-target="#tab-cerradas" type="button">ODTs CERRADAS</button>
+                <button class="nav-link fw-bold text-dark me-2" data-bs-toggle="tab" data-bs-target="#tab-cerradas" type="button"><i class="bi bi-archive-fill me-1"></i> ODTs CERRADAS</button>
+
+                <?php if ($mi_rol != 'admin'): ?>
 
                 <button class="nav-link fw-bold text-dark me-2" data-bs-toggle="tab" data-bs-target="#tab-nueva" type="button">
 
@@ -610,7 +1107,15 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                 </button>
 
+                <?php endif; ?>
+
                 <?php if ($mi_rol == 'admin'): ?>
+
+                    <button class="nav-link fw-bold text-dark me-2" data-bs-toggle="tab" data-bs-target="#tab-whatsapp" type="button">
+
+                        <i class="bi bi-whatsapp"></i> WHATSAPP
+
+                    </button>
 
                     <button class="nav-link fw-bold text-dark ms-auto" data-bs-toggle="tab" data-bs-target="#tab-usuarios" type="button">
 
@@ -850,11 +1355,13 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                 <?php 
 
-                                $staff = $conexion->query("SELECT * FROM usuarios WHERE id != $mi_id ORDER BY nombre ASC"); 
+                                $staff = $conexion->query("SELECT * FROM usuarios WHERE id != $mi_id AND rol = 'regular' ORDER BY nombre ASC");
 
                                 while($st = $staff->fetch_assoc()): 
 
-                                    $st_avatar = (!empty($st['avatar'])) ? "uploads/" . $st['avatar'] : "https://via.placeholder.com/40"; 
+                                    $st_tiene_avatar = !empty($st['avatar']);
+
+                                    $st_avatar = $st_tiene_avatar ? "uploads/" . $st['avatar'] : "";
 
                                 ?>
 
@@ -864,7 +1371,19 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                             <input type="checkbox" name="participantes[]" value="<?php echo $st['id']; ?>" class="form-check-input me-3 ms-1">
 
-                                            <img src="<?php echo $st_avatar; ?>" class="rounded-circle border me-2" style="width:35px;height:35px;object-fit:cover;">
+                                            <?php if ($st_tiene_avatar): ?>
+
+                                                <img src="<?php echo $st_avatar; ?>" class="rounded-circle border me-2" style="width:35px;height:35px;object-fit:cover;">
+
+                                            <?php else: ?>
+
+                                                <div class="rounded-circle border bg-secondary d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width:35px;height:35px;">
+
+                                                    <i class="bi bi-person-fill text-white" style="font-size:1rem;"></i>
+
+                                                </div>
+
+                                            <?php endif; ?>
 
                                             <span class="small fw-semibold text-truncate"><?php echo htmlspecialchars($st['nombre']); ?></span>
 
@@ -938,7 +1457,9 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                     while($u = $usrs->fetch_assoc()): 
 
-                                        $u_avatar = (!empty($u['avatar'])) ? "uploads/" . $u['avatar'] : "https://via.placeholder.com/40"; 
+                                        $u_tiene_avatar = !empty($u['avatar']);
+
+                                        $u_avatar = $u_tiene_avatar ? "uploads/" . $u['avatar'] : "";
 
                                     ?>
 
@@ -948,7 +1469,19 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                             <div class="d-flex align-items-center">
 
-                                                <img src="<?php echo $u_avatar; ?>" class="rounded-circle border me-3" style="width:40px;height:40px;object-fit:cover;">
+                                                <?php if ($u_tiene_avatar): ?>
+
+                                                    <img src="<?php echo $u_avatar; ?>" class="rounded-circle border me-3" style="width:40px;height:40px;object-fit:cover;">
+
+                                                <?php else: ?>
+
+                                                    <div class="rounded-circle border bg-secondary d-flex align-items-center justify-content-center me-3 flex-shrink-0" style="width:40px;height:40px;">
+
+                                                        <i class="bi bi-person-fill text-white" style="font-size:1.1rem;"></i>
+
+                                                    </div>
+
+                                                <?php endif; ?>
 
                                                 <div>
 
@@ -1016,7 +1549,7 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                             <div class="modal-content bg-white shadow">
 
-                                                <form method="POST" class="text-start">
+                                                <form method="POST" enctype="multipart/form-data" class="text-start">
 
                                                     <div class="modal-header bg-light">
 
@@ -1072,6 +1605,50 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                                         </div>
 
+                                                        <div class="mb-3">
+
+                                                            <label class="form-label small fw-bold">Foto de Perfil</label>
+
+                                                            <div class="d-flex align-items-center gap-3">
+
+                                                                <?php if ($u_tiene_avatar): ?>
+
+                                                                    <img src="<?php echo $u_avatar; ?>" id="preview_<?php echo $u['id']; ?>" class="rounded-circle border flex-shrink-0" style="width:56px;height:56px;object-fit:cover;">
+
+                                                                <?php else: ?>
+
+                                                                    <div id="preview_placeholder_<?php echo $u['id']; ?>" class="rounded-circle border bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:56px;height:56px;">
+
+                                                                        <i class="bi bi-person-fill text-white" style="font-size:1.5rem;"></i>
+
+                                                                    </div>
+
+                                                                    <img src="" id="preview_<?php echo $u['id']; ?>" class="rounded-circle border flex-shrink-0 d-none" style="width:56px;height:56px;object-fit:cover;">
+
+                                                                <?php endif; ?>
+
+                                                                <input type="file" name="e_avatar" class="form-control form-control-sm" accept="image/*"
+
+                                                                    onchange="
+                                                                        var ph = document.getElementById('preview_placeholder_<?php echo $u['id']; ?>');
+                                                                        if(ph) ph.classList.add('d-none');
+                                                                        var img = document.getElementById('preview_<?php echo $u['id']; ?>');
+                                                                        img.src = URL.createObjectURL(this.files[0]);
+                                                                        img.classList.remove('d-none');
+                                                                    ">
+
+                                                            </div>
+
+                                                        </div>
+
+                                                        <div class="mb-3">
+
+                                                            <label class="form-label small fw-bold"><i class="bi bi-whatsapp text-success"></i> API Key WhatsApp <span class="text-muted fw-normal">(CallMeBot)</span></label>
+
+                                                            <input type="text" name="e_wa_apikey" class="form-control form-control-sm" placeholder="Dejar vacío para borrar" value="<?php echo htmlspecialchars($u['whatsapp_apikey'] ?? ''); ?>">
+
+                                                        </div>
+
                                                         <div class="mb-2 p-3 bg-light rounded border border-danger-subtle">
 
                                                             <label class="form-label small fw-bold text-danger">
@@ -1080,7 +1657,7 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
                                                             </label>
 
-                                                            <input type="text" name="e_pass" class="form-control form-control-sm" placeholder="Solo si deseas cambiarla">
+                                                            <input type="password" name="e_pass" class="form-control form-control-sm" placeholder="Solo si deseas cambiarla">
 
                                                         </div>
 
@@ -1210,31 +1787,218 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
             <?php endif; ?>
 
+
+
+            <?php if ($mi_rol == 'admin'): ?>
+
+            <div class="tab-pane fade" id="tab-whatsapp">
+
+                <?php
+
+                // Consultar estado del servidor WPPConnect
+
+                $wa_api_url  = 'http://127.0.0.1:3030';
+
+                $wa_api_key  = 'odt-proyectbook-2026';
+
+                $wa_ctx      = stream_context_create(['http' => [
+
+                    'header'        => "x-api-key: {$wa_api_key}\r\n",
+
+                    'timeout'       => 3,
+
+                    'ignore_errors' => true,
+
+                ]]);
+
+                $wa_resp  = @file_get_contents("{$wa_api_url}/status", false, $wa_ctx);
+
+                $wa_data  = $wa_resp ? json_decode($wa_resp, true) : null;
+
+                $wa_estado = $wa_data['estado'] ?? 'offline';
+
+                $wa_es_qr  = str_starts_with($wa_estado, 'qr:');
+
+                $wa_qr_img = $wa_es_qr ? str_replace('qr:', '', $wa_estado) : '';
+
+                $wa_ok     = ($wa_estado === 'conectado');
+
+                $wa_offline = ($wa_resp === false);
+
+                ?>
+
+                <div class="card border-0 shadow-sm">
+
+                    <div class="card-header bg-dark text-white p-3 d-flex align-items-center justify-content-between">
+
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-whatsapp me-2"></i>Conexión WhatsApp</h5>
+
+                        <span class="badge fs-6 <?php echo $wa_ok ? 'bg-success' : ($wa_es_qr ? 'bg-warning text-dark' : ($wa_offline ? 'bg-danger' : 'bg-secondary')); ?>">
+
+                            <?php echo $wa_ok ? '✅ Conectado' : ($wa_es_qr ? '📱 Escanea el QR' : ($wa_offline ? '🔴 Servidor offline' : '⏳ Iniciando...')); ?>
+
+                        </span>
+
+                    </div>
+
+                    <div class="card-body p-4 text-center">
+
+                    <?php if ($wa_offline): ?>
+
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem;"></i>
+
+                        <p class="mt-3 text-danger fw-bold">El servidor WPPConnect no está corriendo.</p>
+
+                        <p class="text-muted small">Desde el servidor ejecuta:<br><code>/home/claudeproyectbook/wppconnect/node_modules/.bin/pm2 start /home/claudeproyectbook/wppconnect/server.js --name wppconnect-odt</code></p>
+
+                    <?php elseif ($wa_ok): ?>
+
+                        <i class="bi bi-whatsapp text-success" style="font-size:4rem;"></i>
+
+                        <p class="mt-3 fw-bold fs-5 text-success">WhatsApp conectado y operando</p>
+
+                        <p class="text-muted small mb-4">El sistema enviará alertas automáticamente a los participantes de cada ODT.</p>
+
+                        <form method="POST" onsubmit="return confirm('¿Desconectar WhatsApp? Deberás escanear un QR nuevo para reconectar.');">
+
+                            <button type="submit" name="wa_disconnect" class="btn btn-outline-danger px-4">
+
+                                <i class="bi bi-plug-fill"></i> Desconectar
+
+                            </button>
+
+                        </form>
+
+                    <?php elseif ($wa_es_qr): ?>
+
+                        <p class="text-muted mb-3">Abre WhatsApp en tu celular → <strong>Dispositivos vinculados</strong> → <strong>Vincular dispositivo</strong> → Escanea:</p>
+
+                        <img src="<?php echo $wa_qr_img; ?>" class="rounded-3 border" style="width:260px;height:260px;" alt="QR WhatsApp">
+
+                        <p class="text-muted small mt-3">Esta página se recarga automáticamente cada 15 segundos.</p>
+
+                        <form method="POST" class="mt-2">
+
+                            <button type="submit" name="wa_new_qr" class="btn btn-outline-secondary btn-sm">
+
+                                <i class="bi bi-arrow-clockwise"></i> Generar nuevo QR
+
+                            </button>
+
+                        </form>
+
+                    <?php else: ?>
+
+                        <div class="spinner-border text-success mb-3" role="status"></div>
+
+                        <p class="text-muted">Iniciando conexión, espera unos segundos...</p>
+
+                    <?php endif; ?>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <?php endif; ?>
+
         </div>
 
     <?php endif; ?>
 
 </div>
 
+<?php if (isset($_POST['wa_disconnect'])): ?>
+
+    <?php
+
+    $ctx_wa = stream_context_create(['http' => [
+
+        'method'        => 'POST',
+
+        'header'        => "x-api-key: odt-proyectbook-2026\r\nContent-Length: 0\r\n",
+
+        'timeout'       => 5,
+
+        'ignore_errors' => true,
+
+    ]]);
+
+    @file_get_contents('http://127.0.0.1:3030/disconnect', false, $ctx_wa);
+
+    header("Location: dashboard.php#tab-whatsapp");
+
+    exit;
+
+    ?>
+
+<?php endif; ?>
+
+<?php if (isset($_POST['wa_new_qr'])): ?>
+
+    <?php
+
+    $ctx_wa2 = stream_context_create(['http' => [
+
+        'method'        => 'POST',
+
+        'header'        => "x-api-key: odt-proyectbook-2026\r\nContent-Length: 0\r\n",
+
+        'timeout'       => 5,
+
+        'ignore_errors' => true,
+
+    ]]);
+
+    @file_get_contents('http://127.0.0.1:3030/new-qr', false, $ctx_wa2);
+
+    sleep(3);
+
+    header("Location: dashboard.php#tab-whatsapp");
+
+    exit;
+
+    ?>
+
+<?php endif; ?>
+
 
 
 <div class="modal fade" id="modalAvatar" tabindex="-1">
 
-    <div class="modal-dialog modal-sm">
+    <div class="modal-dialog">
 
         <form method="POST" enctype="multipart/form-data" class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header bg-dark text-white">
 
-                <h5 class="modal-title fw-bold">Foto</h5>
+                <h5 class="modal-title fw-bold">Mi Perfil</h5>
 
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 
             </div>
 
             <div class="modal-body">
 
-                <input type="file" name="avatar_file" class="form-control" required accept="image/*">
+                <div class="mb-3">
+
+                    <label class="form-label small fw-bold">Foto de perfil</label>
+
+                    <input type="file" name="avatar_file" class="form-control" accept="image/*">
+
+                </div>
+
+                <div class="border-top pt-3">
+
+                    <label class="form-label small fw-bold">API Key de WhatsApp <span class="text-muted fw-normal">(CallMeBot)</span></label>
+
+                    <input type="text" name="wa_apikey" class="form-control" placeholder="La key que te envió CallMeBot por WhatsApp"
+                        value="<?php echo htmlspecialchars($yo['whatsapp_apikey'] ?? ''); ?>">
+
+                    <div class="form-text">Agrega el contacto <strong>+34 644 59 21 64</strong> a WhatsApp y envíale: <code>I allow callmebot to send me messages</code>. Te responderá con tu API key.</div>
+
+                </div>
 
             </div>
 
@@ -1327,6 +2091,22 @@ $avatar_src = (!empty($yo['avatar'])) ? "uploads/" . $yo['avatar'] : "https://vi
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+    // Activar pestaña desde URL ?tab=xxx
+
+    const tabParam = new URLSearchParams(window.location.search).get('tab');
+
+    if (tabParam) {
+
+        const tabEl = document.querySelector('[data-bs-target="#tab-' + tabParam + '"]');
+
+        if (tabEl) new bootstrap.Tab(tabEl).show();
+
+    }
+
+</script>
 
 </body>
 

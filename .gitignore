@@ -1,0 +1,5 @@
+uploads/*
+!uploads/.gitkeep
+phpmailer/vendor/
+*.bak
+*.log
